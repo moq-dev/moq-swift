@@ -15,8 +15,8 @@ let package = Package(
         .target(name: "MoqFFI", dependencies: ["MoqFFIBinary"], path: "Sources/MoqFFI"),
         .binaryTarget(
             name: "MoqFFIBinary",
-            url: "https://github.com/moq-dev/moq/releases/download/moq-ffi-v0.2.15/MoqFFI.xcframework.zip",
-            checksum: "9a21a84f885b161f711037ac24d9a44528d1da35a3ee846fc9de1000a2621b5e"
+            url: "https://github.com/moq-dev/moq/releases/download/moq-ffi-v0.2.16/MoqFFI.xcframework.zip",
+            checksum: "6e7554490195b5c7c704d90427bb7ef3abdc135431a20af02eea97e4187bb071"
         ),
         .testTarget(name: "MoqTests", dependencies: ["Moq"], path: "Tests/MoqTests"),
     ]

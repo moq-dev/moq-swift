@@ -1517,6 +1517,16 @@ public protocol MoqBroadcastProducerProtocol: AnyObject, Sendable {
     func publishMedia(format: String, `init`: Data) throws  -> MoqMediaProducer
     
     /**
+     * Create a media track fed by a raw byte stream with unknown frame
+     * boundaries (e.g. piped Annex-B H.264 straight from an encoder).
+     *
+     * Unlike [`Self::publish_media`], the importer infers frame boundaries, so
+     * the caller just pushes bytes via [`MoqMediaStreamProducer::write`]. Only
+     * self-describing stream formats are supported (avc3, hev1, av01, fmp4, mkv).
+     */
+    func publishMediaStream(format: String) throws  -> MoqMediaStreamProducer
+    
+    /**
      * Create a track for arbitrary byte payloads — no codec or container.
      *
      * Same pattern as moq-boy's `status` and `command` tracks: raw UTF-8/JSON
@@ -1638,6 +1648,23 @@ open func publishMedia(format: String, `init`: Data)throws  -> MoqMediaProducer 
             self.uniffiCloneHandle(),
         FfiConverterString.lower(format),
         FfiConverterData.lower(`init`),$0
+    )
+})
+}
+    
+    /**
+     * Create a media track fed by a raw byte stream with unknown frame
+     * boundaries (e.g. piped Annex-B H.264 straight from an encoder).
+     *
+     * Unlike [`Self::publish_media`], the importer infers frame boundaries, so
+     * the caller just pushes bytes via [`MoqMediaStreamProducer::write`]. Only
+     * self-describing stream formats are supported (avc3, hev1, av01, fmp4, mkv).
+     */
+open func publishMediaStream(format: String)throws  -> MoqMediaStreamProducer  {
+    return try  FfiConverterTypeMoqMediaStreamProducer_lift(try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqbroadcastproducer_publish_media_stream(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(format),$0
     )
 })
 }
@@ -2760,6 +2787,155 @@ public func FfiConverterTypeMoqMediaProducer_lower(_ value: MoqMediaProducer) ->
 
 
 
+public protocol MoqMediaStreamProducerProtocol: AnyObject, Sendable {
+    
+    /**
+     * Finalize the track.
+     *
+     * The importer emits each access unit when the *next* one's start code
+     * arrives, so a trailing access unit with no following delimiter (e.g. the
+     * last frame at EOF) is not emitted. This matches moq-cli's stdin path.
+     */
+    func finish() throws 
+    
+    /**
+     * Push raw stream bytes (e.g. Annex-B H.264 from an encoder). The importer
+     * frames whole access units and keeps any partial trailing frame for the
+     * next call, so callers can write arbitrary chunks.
+     */
+    func write(payload: Data) throws 
+    
+}
+open class MoqMediaStreamProducer: MoqMediaStreamProducerProtocol, @unchecked Sendable {
+    fileprivate let handle: UInt64
+
+    /// Used to instantiate a [FFIObject] without an actual handle, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoHandle {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    required public init(unsafeFromHandle handle: UInt64) {
+        self.handle = handle
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noHandle: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing handle the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noHandle: NoHandle) {
+        self.handle = 0
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiCloneHandle() -> UInt64 {
+        return try! rustCall { uniffi_moq_ffi_fn_clone_moqmediastreamproducer(self.handle, $0) }
+    }
+    // No primary constructor declared for this class.
+
+    deinit {
+        if handle == 0 {
+            // Mock objects have handle=0 don't try to free them
+            return
+        }
+
+        try! rustCall { uniffi_moq_ffi_fn_free_moqmediastreamproducer(handle, $0) }
+    }
+
+    
+
+    
+    /**
+     * Finalize the track.
+     *
+     * The importer emits each access unit when the *next* one's start code
+     * arrives, so a trailing access unit with no following delimiter (e.g. the
+     * last frame at EOF) is not emitted. This matches moq-cli's stdin path.
+     */
+open func finish()throws   {try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqmediastreamproducer_finish(
+            self.uniffiCloneHandle(),$0
+    )
+}
+}
+    
+    /**
+     * Push raw stream bytes (e.g. Annex-B H.264 from an encoder). The importer
+     * frames whole access units and keeps any partial trailing frame for the
+     * next call, so callers can write arbitrary chunks.
+     */
+open func write(payload: Data)throws   {try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqmediastreamproducer_write(
+            self.uniffiCloneHandle(),
+        FfiConverterData.lower(payload),$0
+    )
+}
+}
+    
+
+    
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMoqMediaStreamProducer: FfiConverter {
+    typealias FfiType = UInt64
+    typealias SwiftType = MoqMediaStreamProducer
+
+    public static func lift(_ handle: UInt64) throws -> MoqMediaStreamProducer {
+        return MoqMediaStreamProducer(unsafeFromHandle: handle)
+    }
+
+    public static func lower(_ value: MoqMediaStreamProducer) -> UInt64 {
+        return value.uniffiCloneHandle()
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MoqMediaStreamProducer {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
+    }
+
+    public static func write(_ value: MoqMediaStreamProducer, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqMediaStreamProducer_lift(_ handle: UInt64) throws -> MoqMediaStreamProducer {
+    return try FfiConverterTypeMoqMediaStreamProducer.lift(handle)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqMediaStreamProducer_lower(_ value: MoqMediaStreamProducer) -> UInt64 {
+    return FfiConverterTypeMoqMediaStreamProducer.lower(value)
+}
+
+
+
+
+
+
 public protocol MoqOriginConsumerProtocol: AnyObject, Sendable {
     
     /**
@@ -3637,6 +3813,16 @@ public protocol MoqSessionProtocol: AnyObject, Sendable {
      */
     func closed() async throws 
     
+    /**
+     * Graceful shutdown. Equivalent to `cancel(0)`. Documents the
+     * convention that code 0 means "no error" so callers don't have to
+     * pick one. Named `shutdown` (not `close`) because UniFFI's Kotlin
+     * generator already emits an `AutoCloseable.close()` that releases
+     * the FFI handle, and shadowing it would silently mean a different
+     * thing per binding.
+     */
+    func shutdown() 
+    
 }
 open class MoqSession: MoqSessionProtocol, @unchecked Sendable {
     fileprivate let handle: UInt64
@@ -3720,6 +3906,21 @@ open func closed()async throws   {
             liftFunc: { $0 },
             errorHandler: FfiConverterTypeMoqError_lift
         )
+}
+    
+    /**
+     * Graceful shutdown. Equivalent to `cancel(0)`. Documents the
+     * convention that code 0 means "no error" so callers don't have to
+     * pick one. Named `shutdown` (not `close`) because UniFFI's Kotlin
+     * generator already emits an `AutoCloseable.close()` that releases
+     * the FFI handle, and shadowing it would silently mean a different
+     * thing per binding.
+     */
+open func shutdown()  {try! rustCall() {
+    uniffi_moq_ffi_fn_method_moqsession_shutdown(
+            self.uniffiCloneHandle(),$0
+    )
+}
 }
     
 
@@ -5878,6 +6079,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_publish_media() != 59397) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_publish_media_stream() != 3644) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_publish_track() != 63909) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -5906,6 +6110,12 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqmediaproducer_write_frame() != 4813) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqmediastreamproducer_finish() != 44939) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqmediastreamproducer_write() != 47083) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqtrackproducer_append_group() != 28433) {
@@ -6002,6 +6212,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqsession_closed() != 41657) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqsession_shutdown() != 15895) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_constructor_moqoriginproducer_new() != 8988) {
