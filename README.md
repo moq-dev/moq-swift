@@ -1,23 +1,17 @@
 # Moq (Swift Package)
 
-Ergonomic Swift wrapper for [Media over QUIC](https://github.com/moq-dev/moq):
-async/await, `AsyncSequence` streams, and Swift-native names over the raw
-[moq-ffi](https://github.com/moq-dev/moq-swift-ffi) bindings.
+Auto-generated mirror of the Swift package for [Media over QUIC](https://github.com/moq-dev/moq).
 
-Auto-generated mirror; source, issues, and pull requests live in
-[moq-dev/moq](https://github.com/moq-dev/moq). This repo only carries tagged
-Swift Package Manager releases, versioned independently of the moq-ffi crate.
+Source, issues, and pull requests live in [moq-dev/moq](https://github.com/moq-dev/moq); this repo only carries tagged Swift Package Manager releases.
 
 ## Install
 
 ```swift
-.package(url: "https://github.com/moq-dev/moq-swift", from: "0.3.0"),
+.package(url: "https://github.com/moq-dev/moq-swift", from: "0.2.18"),
 ```
 
-The raw `MoqFFI` bindings (and the prebuilt XCFramework) are pulled in
-transitively from [moq-dev/moq-swift-ffi](https://github.com/moq-dev/moq-swift-ffi).
+The package depends on a prebuilt `MoqFFI.xcframework` attached to the matching [moq-ffi-v0.2.18](https://github.com/moq-dev/moq/releases/tag/moq-ffi-v0.2.18) release on the source repo.
 
-See [moq-dev/moq/swift/README.md](https://github.com/moq-dev/moq/blob/main/swift/README.md)
-for usage, local development, and the release process.
+See [moq-dev/moq/swift/README.md](https://github.com/moq-dev/moq/blob/main/swift/README.md) for usage, local development, and release process.
 
 Licensed under MIT OR Apache-2.0.
