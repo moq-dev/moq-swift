@@ -7,10 +7,10 @@ Source, issues, and pull requests live in [moq-dev/moq](https://github.com/moq-d
 ## Install
 
 ```swift
-.package(url: "https://github.com/moq-dev/moq-swift", from: "0.2.18"),
+.package(url: "https://github.com/moq-dev/moq-swift", from: "0.2.19"),
 ```
 
-The package depends on a prebuilt `MoqFFI.xcframework` attached to the matching [moq-ffi-v0.2.18](https://github.com/moq-dev/moq/releases/tag/moq-ffi-v0.2.18) release on the source repo.
+The package depends on a prebuilt `MoqFFI.xcframework` attached to the matching [moq-ffi-v0.2.19](https://github.com/moq-dev/moq/releases/tag/moq-ffi-v0.2.19) release on the source repo.
 
 See [moq-dev/moq/swift/README.md](https://github.com/moq-dev/moq/blob/main/swift/README.md) for usage, local development, and release process.
 
