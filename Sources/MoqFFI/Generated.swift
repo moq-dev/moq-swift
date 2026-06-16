@@ -451,6 +451,22 @@ fileprivate struct FfiConverterUInt32: FfiConverterPrimitive {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterInt32: FfiConverterPrimitive {
+    typealias FfiType = Int32
+    typealias SwiftType = Int32
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Int32 {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: Int32, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterUInt64: FfiConverterPrimitive {
     typealias FfiType = UInt64
     typealias SwiftType = UInt64
@@ -1490,6 +1506,156 @@ public func FfiConverterTypeMoqBroadcastConsumer_lower(_ value: MoqBroadcastCons
 
 
 
+public protocol MoqBroadcastDynamicProtocol: AnyObject, Sendable {
+    
+    /**
+     * Cancel all current and future `requested_track()` calls.
+     */
+    func cancel() 
+    
+    /**
+     * Wait for the next subscriber-requested track.
+     *
+     * Returns an error once the broadcast is closed or aborted.
+     */
+    func requestedTrack() async throws  -> MoqTrackProducer
+    
+}
+open class MoqBroadcastDynamic: MoqBroadcastDynamicProtocol, @unchecked Sendable {
+    fileprivate let handle: UInt64
+
+    /// Used to instantiate a [FFIObject] without an actual handle, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoHandle {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    required public init(unsafeFromHandle handle: UInt64) {
+        self.handle = handle
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noHandle: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing handle the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noHandle: NoHandle) {
+        self.handle = 0
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiCloneHandle() -> UInt64 {
+        return try! rustCall { uniffi_moq_ffi_fn_clone_moqbroadcastdynamic(self.handle, $0) }
+    }
+    // No primary constructor declared for this class.
+
+    deinit {
+        if handle == 0 {
+            // Mock objects have handle=0 don't try to free them
+            return
+        }
+
+        try! rustCall { uniffi_moq_ffi_fn_free_moqbroadcastdynamic(handle, $0) }
+    }
+
+    
+
+    
+    /**
+     * Cancel all current and future `requested_track()` calls.
+     */
+open func cancel()  {try! rustCall() {
+    uniffi_moq_ffi_fn_method_moqbroadcastdynamic_cancel(
+            self.uniffiCloneHandle(),$0
+    )
+}
+}
+    
+    /**
+     * Wait for the next subscriber-requested track.
+     *
+     * Returns an error once the broadcast is closed or aborted.
+     */
+open func requestedTrack()async throws  -> MoqTrackProducer  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_moq_ffi_fn_method_moqbroadcastdynamic_requested_track(
+                    self.uniffiCloneHandle()
+                    
+                )
+            },
+            pollFunc: ffi_moq_ffi_rust_future_poll_u64,
+            completeFunc: ffi_moq_ffi_rust_future_complete_u64,
+            freeFunc: ffi_moq_ffi_rust_future_free_u64,
+            liftFunc: FfiConverterTypeMoqTrackProducer_lift,
+            errorHandler: FfiConverterTypeMoqError_lift
+        )
+}
+    
+
+    
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMoqBroadcastDynamic: FfiConverter {
+    typealias FfiType = UInt64
+    typealias SwiftType = MoqBroadcastDynamic
+
+    public static func lift(_ handle: UInt64) throws -> MoqBroadcastDynamic {
+        return MoqBroadcastDynamic(unsafeFromHandle: handle)
+    }
+
+    public static func lower(_ value: MoqBroadcastDynamic) -> UInt64 {
+        return value.uniffiCloneHandle()
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MoqBroadcastDynamic {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
+    }
+
+    public static func write(_ value: MoqBroadcastDynamic, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqBroadcastDynamic_lift(_ handle: UInt64) throws -> MoqBroadcastDynamic {
+    return try FfiConverterTypeMoqBroadcastDynamic.lift(handle)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqBroadcastDynamic_lower(_ value: MoqBroadcastDynamic) -> UInt64 {
+    return FfiConverterTypeMoqBroadcastDynamic.lower(value)
+}
+
+
+
+
+
+
 public protocol MoqBroadcastProducerProtocol: AnyObject, Sendable {
     
     /**
@@ -1505,6 +1671,14 @@ public protocol MoqBroadcastProducerProtocol: AnyObject, Sendable {
     func consume() throws  -> MoqBroadcastConsumer
     
     /**
+     * Create a dynamic producer that yields tracks requested by subscribers.
+     *
+     * Hold the returned object for as long as missing track requests should be
+     * accepted. Dropping it makes future subscriptions to unknown tracks fail.
+     */
+    func dynamic() throws  -> MoqBroadcastDynamic
+    
+    /**
      * Finish this publisher, finalizing the catalog stream.
      */
     func finish() throws 
@@ -1517,6 +1691,15 @@ public protocol MoqBroadcastProducerProtocol: AnyObject, Sendable {
     func publishMedia(format: String, `init`: Data) throws  -> MoqMediaProducer
     
     /**
+     * Publish media on an existing track, usually one returned by
+     * [`MoqBroadcastDynamic::requested_track`].
+     *
+     * `format` controls the encoding of `init` and frame payloads. Only
+     * single-track formats are supported.
+     */
+    func publishMediaOnTrack(track: MoqTrackProducer, format: String, `init`: Data) throws  -> MoqMediaProducer
+    
+    /**
      * Create a media track fed by a raw byte stream with unknown frame
      * boundaries (e.g. piped Annex-B H.264 straight from an encoder).
      *
@@ -1527,7 +1710,7 @@ public protocol MoqBroadcastProducerProtocol: AnyObject, Sendable {
     func publishMediaStream(format: String) throws  -> MoqMediaStreamProducer
     
     /**
-     * Create a track for arbitrary byte payloads — no codec or container.
+     * Create a track for arbitrary byte payloads, no codec or container.
      *
      * Same pattern as moq-boy's `status` and `command` tracks: raw UTF-8/JSON
      * bytes written directly to moq-lite groups with no media framing.
@@ -1628,6 +1811,20 @@ open func consume()throws  -> MoqBroadcastConsumer  {
 }
     
     /**
+     * Create a dynamic producer that yields tracks requested by subscribers.
+     *
+     * Hold the returned object for as long as missing track requests should be
+     * accepted. Dropping it makes future subscriptions to unknown tracks fail.
+     */
+open func dynamic()throws  -> MoqBroadcastDynamic  {
+    return try  FfiConverterTypeMoqBroadcastDynamic_lift(try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqbroadcastproducer_dynamic(
+            self.uniffiCloneHandle(),$0
+    )
+})
+}
+    
+    /**
      * Finish this publisher, finalizing the catalog stream.
      */
 open func finish()throws   {try rustCallWithError(FfiConverterTypeMoqError_lift) {
@@ -1653,6 +1850,24 @@ open func publishMedia(format: String, `init`: Data)throws  -> MoqMediaProducer 
 }
     
     /**
+     * Publish media on an existing track, usually one returned by
+     * [`MoqBroadcastDynamic::requested_track`].
+     *
+     * `format` controls the encoding of `init` and frame payloads. Only
+     * single-track formats are supported.
+     */
+open func publishMediaOnTrack(track: MoqTrackProducer, format: String, `init`: Data)throws  -> MoqMediaProducer  {
+    return try  FfiConverterTypeMoqMediaProducer_lift(try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqbroadcastproducer_publish_media_on_track(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeMoqTrackProducer_lower(track),
+        FfiConverterString.lower(format),
+        FfiConverterData.lower(`init`),$0
+    )
+})
+}
+    
+    /**
      * Create a media track fed by a raw byte stream with unknown frame
      * boundaries (e.g. piped Annex-B H.264 straight from an encoder).
      *
@@ -1670,7 +1885,7 @@ open func publishMediaStream(format: String)throws  -> MoqMediaStreamProducer  {
 }
     
     /**
-     * Create a track for arbitrary byte payloads — no codec or container.
+     * Create a track for arbitrary byte payloads, no codec or container.
      *
      * Same pattern as moq-boy's `status` and `command` tracks: raw UTF-8/JSON
      * bytes written directly to moq-lite groups with no media framing.
@@ -1916,6 +2131,24 @@ public protocol MoqClientProtocol: AnyObject, Sendable {
      */
     func setTlsDisableVerify(disable: Bool) 
     
+    /**
+     * Pin the peer to a certificate with one of these SHA-256 fingerprints, encoded as hex.
+     *
+     * This is the native equivalent of the browser's WebTransport `serverCertificateHashes`
+     * and accepts the same values a server reports (see `MoqServer.cert_fingerprints`). Use it
+     * to trust a self-signed certificate without disabling verification. An empty list clears
+     * any pinned fingerprints.
+     */
+    func setTlsFingerprints(fingerprints: [String]) 
+    
+    /**
+     * Trust these PEM root certificate file(s) instead of the system roots.
+     *
+     * Pass the paths to PEM-encoded CA certificates. An empty list restores the
+     * default behavior of using the platform's native root store.
+     */
+    func setTlsRoots(paths: [String]) 
+    
 }
 open class MoqClient: MoqClientProtocol, @unchecked Sendable {
     fileprivate let handle: UInt64
@@ -2054,6 +2287,36 @@ open func setTlsDisableVerify(disable: Bool)  {try! rustCall() {
     uniffi_moq_ffi_fn_method_moqclient_set_tls_disable_verify(
             self.uniffiCloneHandle(),
         FfiConverterBool.lower(disable),$0
+    )
+}
+}
+    
+    /**
+     * Pin the peer to a certificate with one of these SHA-256 fingerprints, encoded as hex.
+     *
+     * This is the native equivalent of the browser's WebTransport `serverCertificateHashes`
+     * and accepts the same values a server reports (see `MoqServer.cert_fingerprints`). Use it
+     * to trust a self-signed certificate without disabling verification. An empty list clears
+     * any pinned fingerprints.
+     */
+open func setTlsFingerprints(fingerprints: [String])  {try! rustCall() {
+    uniffi_moq_ffi_fn_method_moqclient_set_tls_fingerprints(
+            self.uniffiCloneHandle(),
+        FfiConverterSequenceString.lower(fingerprints),$0
+    )
+}
+}
+    
+    /**
+     * Trust these PEM root certificate file(s) instead of the system roots.
+     *
+     * Pass the paths to PEM-encoded CA certificates. An empty list restores the
+     * default behavior of using the platform's native root store.
+     */
+open func setTlsRoots(paths: [String])  {try! rustCall() {
+    uniffi_moq_ffi_fn_method_moqclient_set_tls_roots(
+            self.uniffiCloneHandle(),
+        FfiConverterSequenceString.lower(paths),$0
     )
 }
 }
@@ -4180,6 +4443,11 @@ public func FfiConverterTypeMoqTrackConsumer_lower(_ value: MoqTrackConsumer) ->
 public protocol MoqTrackProducerProtocol: AnyObject, Sendable {
     
     /**
+     * Abort this track with an application error code.
+     */
+    func abort(errorCode: Int32) throws 
+    
+    /**
      * Append a new group to the track, returning a producer for writing frames into it.
      */
     func appendGroup() throws  -> MoqGroupProducer
@@ -4209,7 +4477,7 @@ public protocol MoqTrackProducerProtocol: AnyObject, Sendable {
     func used() async throws 
     
     /**
-     * Convenience: write a single-frame group in one call — the same pattern
+     * Convenience: write a single-frame group in one call, the same pattern
      * used by moq-boy's status/command tracks.
      */
     func writeFrame(payload: Data) throws 
@@ -4267,6 +4535,17 @@ open class MoqTrackProducer: MoqTrackProducerProtocol, @unchecked Sendable {
 
     
 
+    
+    /**
+     * Abort this track with an application error code.
+     */
+open func abort(errorCode: Int32)throws   {try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqtrackproducer_abort(
+            self.uniffiCloneHandle(),
+        FfiConverterInt32.lower(errorCode),$0
+    )
+}
+}
     
     /**
      * Append a new group to the track, returning a producer for writing frames into it.
@@ -4351,7 +4630,7 @@ open func used()async throws   {
 }
     
     /**
-     * Convenience: write a single-frame group in one call — the same pattern
+     * Convenience: write a single-frame group in one call, the same pattern
      * used by moq-boy's status/command tracks.
      */
 open func writeFrame(payload: Data)throws   {try rustCallWithError(FfiConverterTypeMoqError_lift) {
@@ -5323,7 +5602,11 @@ public enum MoqError: Swift.Error, Equatable, Hashable, Foundation.LocalizedErro
     
     case Codec(message: String)
     
+    case InvalidErrorCode(message: String)
+    
     case Unauthorized(message: String)
+    
+    case Forbidden(message: String)
     
     case Log(message: String)
     
@@ -5416,11 +5699,19 @@ public struct FfiConverterTypeMoqError: FfiConverterRustBuffer {
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 16: return .Unauthorized(
+        case 16: return .InvalidErrorCode(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 17: return .Log(
+        case 17: return .Unauthorized(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 18: return .Forbidden(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 19: return .Log(
             message: try FfiConverterString.read(from: &buf)
         )
         
@@ -5465,10 +5756,14 @@ public struct FfiConverterTypeMoqError: FfiConverterRustBuffer {
             writeInt(&buf, Int32(14))
         case .Codec(_ /* message is ignored*/):
             writeInt(&buf, Int32(15))
-        case .Unauthorized(_ /* message is ignored*/):
+        case .InvalidErrorCode(_ /* message is ignored*/):
             writeInt(&buf, Int32(16))
-        case .Log(_ /* message is ignored*/):
+        case .Unauthorized(_ /* message is ignored*/):
             writeInt(&buf, Int32(17))
+        case .Forbidden(_ /* message is ignored*/):
+            writeInt(&buf, Int32(18))
+        case .Log(_ /* message is ignored*/):
+            writeInt(&buf, Int32(19))
 
         
         }
@@ -6067,10 +6362,19 @@ private let initializationResult: InitializationResult = {
     if (uniffi_moq_ffi_checksum_method_moqoriginproducer_publish() != 24937) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_moq_ffi_checksum_method_moqbroadcastdynamic_cancel() != 41601) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqbroadcastdynamic_requested_track() != 37814) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_publish_audio() != 39786) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_consume() != 46595) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_dynamic() != 46433) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_finish() != 23327) {
@@ -6079,10 +6383,13 @@ private let initializationResult: InitializationResult = {
     if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_publish_media() != 59397) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_publish_media_on_track() != 58765) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_publish_media_stream() != 3644) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_publish_track() != 63909) {
+    if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_publish_track() != 35208) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqgroupproducer_consume() != 12315) {
@@ -6118,6 +6425,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_moq_ffi_checksum_method_moqmediastreamproducer_write() != 47083) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_moq_ffi_checksum_method_moqtrackproducer_abort() != 41393) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_moq_ffi_checksum_method_moqtrackproducer_append_group() != 28433) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -6136,7 +6446,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_moq_ffi_checksum_method_moqtrackproducer_used() != 20539) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_moq_ffi_checksum_method_moqtrackproducer_write_frame() != 62709) {
+    if (uniffi_moq_ffi_checksum_method_moqtrackproducer_write_frame() != 14812) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqrequest_cancel() != 46499) {
@@ -6206,6 +6516,12 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqclient_set_tls_disable_verify() != 17397) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqclient_set_tls_fingerprints() != 55328) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqclient_set_tls_roots() != 54966) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqsession_cancel() != 24930) {
