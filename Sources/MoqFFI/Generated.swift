@@ -1722,6 +1722,26 @@ public protocol MoqBroadcastProducerProtocol: AnyObject, Sendable {
      */
     func publishTrack(name: String) throws  -> MoqTrackProducer
     
+    /**
+     * Remove an untyped application section from this broadcast's catalog by name.
+     *
+     * A no-op if no section with that name exists. The catalog is republished automatically.
+     */
+    func removeCatalogSection(name: String) throws 
+    
+    /**
+     * Set (or replace) an untyped application section in this broadcast's catalog.
+     *
+     * `value` is any JSON document (object, array, string, ...). The section lands as a
+     * top-level key alongside `video`/`audio` and reaches subscribers via
+     * [`MoqCatalog::extra`](crate::media::MoqCatalog). `name` must not be a reserved media
+     * section (`video`/`audio`). The catalog is republished automatically.
+     *
+     * Use this to advertise a side-channel track (e.g. a transcript or captions track) that
+     * the catalog doesn't model natively, mirroring the JS catalog's pass-through sections.
+     */
+    func setCatalogSection(name: String, value: String) throws 
+    
 }
 open class MoqBroadcastProducer: MoqBroadcastProducerProtocol, @unchecked Sendable {
     fileprivate let handle: UInt64
@@ -1902,6 +1922,39 @@ open func publishTrack(name: String)throws  -> MoqTrackProducer  {
         FfiConverterString.lower(name),$0
     )
 })
+}
+    
+    /**
+     * Remove an untyped application section from this broadcast's catalog by name.
+     *
+     * A no-op if no section with that name exists. The catalog is republished automatically.
+     */
+open func removeCatalogSection(name: String)throws   {try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqbroadcastproducer_remove_catalog_section(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(name),$0
+    )
+}
+}
+    
+    /**
+     * Set (or replace) an untyped application section in this broadcast's catalog.
+     *
+     * `value` is any JSON document (object, array, string, ...). The section lands as a
+     * top-level key alongside `video`/`audio` and reaches subscribers via
+     * [`MoqCatalog::extra`](crate::media::MoqCatalog). `name` must not be a reserved media
+     * section (`video`/`audio`). The catalog is republished automatically.
+     *
+     * Use this to advertise a side-channel track (e.g. a transcript or captions track) that
+     * the catalog doesn't model natively, mirroring the JS catalog's pass-through sections.
+     */
+open func setCatalogSection(name: String, value: String)throws   {try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqbroadcastproducer_set_catalog_section(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(name),
+        FfiConverterString.lower(value),$0
+    )
+}
 }
     
 
@@ -5067,15 +5120,29 @@ public struct MoqCatalog: Equatable, Hashable {
     public var display: MoqDimensions?
     public var rotation: Double?
     public var flip: Bool?
+    /**
+     * Untyped application catalog sections, keyed by section name, with each value
+     * a JSON string. These are the top-level catalog keys beyond `video`/`audio`,
+     * passed through verbatim (decode the JSON yourself). Set them on the publish
+     * side with [`set_catalog_section`](crate::producer::MoqBroadcastProducer::set_catalog_section).
+     */
+    public var extra: [String: String]
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(video: [String: MoqVideo], audio: [String: MoqAudio], display: MoqDimensions?, rotation: Double?, flip: Bool?) {
+    public init(video: [String: MoqVideo], audio: [String: MoqAudio], display: MoqDimensions?, rotation: Double?, flip: Bool?, 
+        /**
+         * Untyped application catalog sections, keyed by section name, with each value
+         * a JSON string. These are the top-level catalog keys beyond `video`/`audio`,
+         * passed through verbatim (decode the JSON yourself). Set them on the publish
+         * side with [`set_catalog_section`](crate::producer::MoqBroadcastProducer::set_catalog_section).
+         */extra: [String: String]) {
         self.video = video
         self.audio = audio
         self.display = display
         self.rotation = rotation
         self.flip = flip
+        self.extra = extra
     }
 
     
@@ -5098,7 +5165,8 @@ public struct FfiConverterTypeMoqCatalog: FfiConverterRustBuffer {
                 audio: FfiConverterDictionaryStringTypeMoqAudio.read(from: &buf), 
                 display: FfiConverterOptionTypeMoqDimensions.read(from: &buf), 
                 rotation: FfiConverterOptionDouble.read(from: &buf), 
-                flip: FfiConverterOptionBool.read(from: &buf)
+                flip: FfiConverterOptionBool.read(from: &buf), 
+                extra: FfiConverterDictionaryStringString.read(from: &buf)
         )
     }
 
@@ -5108,6 +5176,7 @@ public struct FfiConverterTypeMoqCatalog: FfiConverterRustBuffer {
         FfiConverterOptionTypeMoqDimensions.write(value.display, into: &buf)
         FfiConverterOptionDouble.write(value.rotation, into: &buf)
         FfiConverterOptionBool.write(value.flip, into: &buf)
+        FfiConverterDictionaryStringString.write(value.extra, into: &buf)
     }
 }
 
@@ -5607,6 +5676,11 @@ public enum MoqError: Swift.Error, Equatable, Hashable, Foundation.LocalizedErro
     
     case Codec(message: String)
     
+    /**
+     * Failed to parse a JSON value, e.g. an invalid catalog section payload.
+     */
+    case Json(message: String)
+    
     case InvalidErrorCode(message: String)
     
     case Unauthorized(message: String)
@@ -5704,19 +5778,23 @@ public struct FfiConverterTypeMoqError: FfiConverterRustBuffer {
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 16: return .InvalidErrorCode(
+        case 16: return .Json(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 17: return .Unauthorized(
+        case 17: return .InvalidErrorCode(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 18: return .Forbidden(
+        case 18: return .Unauthorized(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 19: return .Log(
+        case 19: return .Forbidden(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 20: return .Log(
             message: try FfiConverterString.read(from: &buf)
         )
         
@@ -5761,14 +5839,16 @@ public struct FfiConverterTypeMoqError: FfiConverterRustBuffer {
             writeInt(&buf, Int32(14))
         case .Codec(_ /* message is ignored*/):
             writeInt(&buf, Int32(15))
-        case .InvalidErrorCode(_ /* message is ignored*/):
+        case .Json(_ /* message is ignored*/):
             writeInt(&buf, Int32(16))
-        case .Unauthorized(_ /* message is ignored*/):
+        case .InvalidErrorCode(_ /* message is ignored*/):
             writeInt(&buf, Int32(17))
-        case .Forbidden(_ /* message is ignored*/):
+        case .Unauthorized(_ /* message is ignored*/):
             writeInt(&buf, Int32(18))
-        case .Log(_ /* message is ignored*/):
+        case .Forbidden(_ /* message is ignored*/):
             writeInt(&buf, Int32(19))
+        case .Log(_ /* message is ignored*/):
+            writeInt(&buf, Int32(20))
 
         
         }
@@ -6154,6 +6234,32 @@ fileprivate struct FfiConverterSequenceString: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterDictionaryStringString: FfiConverterRustBuffer {
+    public static func write(_ value: [String: String], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for (key, value) in value {
+            FfiConverterString.write(key, into: &buf)
+            FfiConverterString.write(value, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [String: String] {
+        let len: Int32 = try readInt(&buf)
+        var dict = [String: String]()
+        dict.reserveCapacity(Int(len))
+        for _ in 0..<len {
+            let key = try FfiConverterString.read(from: &buf)
+            let value = try FfiConverterString.read(from: &buf)
+            dict[key] = value
+        }
+        return dict
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterDictionaryStringTypeMoqAudio: FfiConverterRustBuffer {
     public static func write(_ value: [String: MoqAudio], into buf: inout [UInt8]) {
         let len = Int32(value.count)
@@ -6395,6 +6501,12 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_publish_track() != 35208) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_remove_catalog_section() != 37261) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_set_catalog_section() != 25173) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqgroupproducer_consume() != 12315) {
