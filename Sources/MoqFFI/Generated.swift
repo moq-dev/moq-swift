@@ -904,6 +904,11 @@ public protocol MoqAnnouncementProtocol: AnyObject, Sendable {
     func broadcast()  -> MoqBroadcastConsumer
     
     /**
+     * The origin ids of the relay hops this broadcast traversed, oldest first.
+     */
+    func hops()  -> [UInt64]
+    
+    /**
      * The path of the announced broadcast.
      */
     func path()  -> String
@@ -971,6 +976,17 @@ open class MoqAnnouncement: MoqAnnouncementProtocol, @unchecked Sendable {
 open func broadcast() -> MoqBroadcastConsumer  {
     return try!  FfiConverterTypeMoqBroadcastConsumer_lift(try! rustCall() {
     uniffi_moq_ffi_fn_method_moqannouncement_broadcast(
+            self.uniffiCloneHandle(),$0
+    )
+})
+}
+    
+    /**
+     * The origin ids of the relay hops this broadcast traversed, oldest first.
+     */
+open func hops() -> [UInt64]  {
+    return try!  FfiConverterSequenceUInt64.lift(try! rustCall() {
+    uniffi_moq_ffi_fn_method_moqannouncement_hops(
             self.uniffiCloneHandle(),$0
     )
 })
@@ -6209,6 +6225,31 @@ fileprivate struct FfiConverterOptionTypeMoqFrame: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceUInt64: FfiConverterRustBuffer {
+    typealias SwiftType = [UInt64]
+
+    public static func write(_ value: [UInt64], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterUInt64.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [UInt64] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [UInt64]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterUInt64.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceString: FfiConverterRustBuffer {
     typealias SwiftType = [String]
 
@@ -6456,6 +6497,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqannouncement_broadcast() != 8318) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqannouncement_hops() != 43996) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqannouncement_path() != 33642) {
