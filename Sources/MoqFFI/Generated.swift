@@ -2925,16 +2925,22 @@ public protocol MoqMediaProducerProtocol: AnyObject, Sendable {
     
     /**
      * Return the name of the media track.
+     *
+     * Errors for a multi-track container source, which has no single track name.
      */
     func name() throws  -> String
     
     /**
      * Wait until this media track has no active consumers.
+     *
+     * Errors for a multi-track container source, which has no single demand.
      */
     func unused() async throws 
     
     /**
      * Wait until this media track has at least one active consumer.
+     *
+     * Errors for a multi-track container source, which has no single demand.
      */
     func used() async throws 
     
@@ -3011,6 +3017,8 @@ open func finish()throws   {try rustCallWithError(FfiConverterTypeMoqError_lift)
     
     /**
      * Return the name of the media track.
+     *
+     * Errors for a multi-track container source, which has no single track name.
      */
 open func name()throws  -> String  {
     return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeMoqError_lift) {
@@ -3022,6 +3030,8 @@ open func name()throws  -> String  {
     
     /**
      * Wait until this media track has no active consumers.
+     *
+     * Errors for a multi-track container source, which has no single demand.
      */
 open func unused()async throws   {
     return
@@ -3042,6 +3052,8 @@ open func unused()async throws   {
     
     /**
      * Wait until this media track has at least one active consumer.
+     *
+     * Errors for a multi-track container source, which has no single demand.
      */
 open func used()async throws   {
     return
@@ -6568,13 +6580,13 @@ private let initializationResult: InitializationResult = {
     if (uniffi_moq_ffi_checksum_method_moqmediaproducer_finish() != 13508) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_moq_ffi_checksum_method_moqmediaproducer_name() != 45039) {
+    if (uniffi_moq_ffi_checksum_method_moqmediaproducer_name() != 35932) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_moq_ffi_checksum_method_moqmediaproducer_unused() != 45236) {
+    if (uniffi_moq_ffi_checksum_method_moqmediaproducer_unused() != 65253) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_moq_ffi_checksum_method_moqmediaproducer_used() != 49162) {
+    if (uniffi_moq_ffi_checksum_method_moqmediaproducer_used() != 29546) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqmediaproducer_write_frame() != 4813) {
