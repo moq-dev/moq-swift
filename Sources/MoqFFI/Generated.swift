@@ -2223,6 +2223,15 @@ public protocol MoqClientProtocol: AnyObject, Sendable {
      */
     func setTlsRoots(paths: [String]) 
     
+    /**
+     * Configure whether to also trust the platform's native root certificates.
+     *
+     * By default, system roots are trusted only when no custom roots are configured.
+     * Set this to `true` to trust system roots in addition to roots from
+     * `set_tls_roots`, or `false` to trust only custom roots.
+     */
+    func setTlsSystemRoots(systemRoots: Bool) 
+    
 }
 open class MoqClient: MoqClientProtocol, @unchecked Sendable {
     fileprivate let handle: UInt64
@@ -2391,6 +2400,21 @@ open func setTlsRoots(paths: [String])  {try! rustCall() {
     uniffi_moq_ffi_fn_method_moqclient_set_tls_roots(
             self.uniffiCloneHandle(),
         FfiConverterSequenceString.lower(paths),$0
+    )
+}
+}
+    
+    /**
+     * Configure whether to also trust the platform's native root certificates.
+     *
+     * By default, system roots are trusted only when no custom roots are configured.
+     * Set this to `true` to trust system roots in addition to roots from
+     * `set_tls_roots`, or `false` to trust only custom roots.
+     */
+open func setTlsSystemRoots(systemRoots: Bool)  {try! rustCall() {
+    uniffi_moq_ffi_fn_method_moqclient_set_tls_system_roots(
+            self.uniffiCloneHandle(),
+        FfiConverterBool.lower(systemRoots),$0
     )
 }
 }
@@ -6695,6 +6719,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqclient_set_tls_roots() != 54966) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqclient_set_tls_system_roots() != 42515) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqsession_cancel() != 24930) {
