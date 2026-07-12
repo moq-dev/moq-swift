@@ -1364,6 +1364,18 @@ public protocol MoqBroadcastConsumerProtocol: AnyObject, Sendable {
      */
     func subscribeTrack(name: String) throws  -> MoqTrackConsumer
     
+    /**
+     * Subscribe to a JSON snapshot track (lossy latest-value) by name.
+     *
+     * Pass the same [`MoqJsonConfig::compression`] the producer used.
+     */
+    func subscribeJson(name: String, config: MoqJsonConfig) throws  -> MoqJsonConsumer
+    
+    /**
+     * Subscribe to a JSON stream track (lossless append-log) by name.
+     */
+    func subscribeJsonStream(name: String, config: MoqJsonStreamConfig) throws  -> MoqJsonStreamConsumer
+    
 }
 open class MoqBroadcastConsumer: MoqBroadcastConsumerProtocol, @unchecked Sendable {
     fileprivate let handle: UInt64
@@ -1473,6 +1485,34 @@ open func subscribeTrack(name: String)throws  -> MoqTrackConsumer  {
     uniffi_moq_ffi_fn_method_moqbroadcastconsumer_subscribe_track(
             self.uniffiCloneHandle(),
         FfiConverterString.lower(name),$0
+    )
+})
+}
+    
+    /**
+     * Subscribe to a JSON snapshot track (lossy latest-value) by name.
+     *
+     * Pass the same [`MoqJsonConfig::compression`] the producer used.
+     */
+open func subscribeJson(name: String, config: MoqJsonConfig)throws  -> MoqJsonConsumer  {
+    return try  FfiConverterTypeMoqJsonConsumer_lift(try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqbroadcastconsumer_subscribe_json(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(name),
+        FfiConverterTypeMoqJsonConfig_lower(config),$0
+    )
+})
+}
+    
+    /**
+     * Subscribe to a JSON stream track (lossless append-log) by name.
+     */
+open func subscribeJsonStream(name: String, config: MoqJsonStreamConfig)throws  -> MoqJsonStreamConsumer  {
+    return try  FfiConverterTypeMoqJsonStreamConsumer_lift(try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqbroadcastconsumer_subscribe_json_stream(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(name),
+        FfiConverterTypeMoqJsonStreamConfig_lower(config),$0
     )
 })
 }
@@ -1687,6 +1727,19 @@ public protocol MoqBroadcastProducerProtocol: AnyObject, Sendable {
     func publishAudio(name: String, input: MoqAudioEncoderInput, output: MoqAudioEncoderOutput) throws  -> MoqAudioProducer
     
     /**
+     * Publish a JSON snapshot track (lossy latest-value) by name.
+     *
+     * Advertise it in the catalog yourself with
+     * [`set_catalog_section`](Self::set_catalog_section) if consumers should discover it.
+     */
+    func publishJson(name: String, config: MoqJsonConfig) throws  -> MoqJsonProducer
+    
+    /**
+     * Publish a JSON stream track (lossless append-log) by name.
+     */
+    func publishJsonStream(name: String, config: MoqJsonStreamConfig) throws  -> MoqJsonStreamProducer
+    
+    /**
      * Create a consumer that reads from this broadcast's tracks.
      */
     func consume() throws  -> MoqBroadcastConsumer
@@ -1836,6 +1889,35 @@ open func publishAudio(name: String, input: MoqAudioEncoderInput, output: MoqAud
         FfiConverterString.lower(name),
         FfiConverterTypeMoqAudioEncoderInput_lower(input),
         FfiConverterTypeMoqAudioEncoderOutput_lower(output),$0
+    )
+})
+}
+    
+    /**
+     * Publish a JSON snapshot track (lossy latest-value) by name.
+     *
+     * Advertise it in the catalog yourself with
+     * [`set_catalog_section`](Self::set_catalog_section) if consumers should discover it.
+     */
+open func publishJson(name: String, config: MoqJsonConfig)throws  -> MoqJsonProducer  {
+    return try  FfiConverterTypeMoqJsonProducer_lift(try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqbroadcastproducer_publish_json(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(name),
+        FfiConverterTypeMoqJsonConfig_lower(config),$0
+    )
+})
+}
+    
+    /**
+     * Publish a JSON stream track (lossless append-log) by name.
+     */
+open func publishJsonStream(name: String, config: MoqJsonStreamConfig)throws  -> MoqJsonStreamProducer  {
+    return try  FfiConverterTypeMoqJsonStreamProducer_lift(try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqbroadcastproducer_publish_json_stream(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(name),
+        FfiConverterTypeMoqJsonStreamConfig_lower(config),$0
     )
 })
 }
@@ -2787,6 +2869,602 @@ public func FfiConverterTypeMoqGroupProducer_lift(_ handle: UInt64) throws -> Mo
 #endif
 public func FfiConverterTypeMoqGroupProducer_lower(_ value: MoqGroupProducer) -> UInt64 {
     return FfiConverterTypeMoqGroupProducer.lower(value)
+}
+
+
+
+
+
+
+/**
+ * Consumes a JSON snapshot track, yielding the latest reconstructed value.
+ */
+public protocol MoqJsonConsumerProtocol: AnyObject, Sendable {
+    
+    /**
+     * Cancel all current and future `next()` calls.
+     */
+    func cancel() 
+    
+    /**
+     * Get the next value as a JSON string. Returns `None` once the track ends.
+     *
+     * A consumer that has fallen behind collapses the backlog and yields only the latest value.
+     */
+    func next() async throws  -> String?
+    
+}
+/**
+ * Consumes a JSON snapshot track, yielding the latest reconstructed value.
+ */
+open class MoqJsonConsumer: MoqJsonConsumerProtocol, @unchecked Sendable {
+    fileprivate let handle: UInt64
+
+    /// Used to instantiate a [FFIObject] without an actual handle, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoHandle {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    required public init(unsafeFromHandle handle: UInt64) {
+        self.handle = handle
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noHandle: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing handle the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noHandle: NoHandle) {
+        self.handle = 0
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiCloneHandle() -> UInt64 {
+        return try! rustCall { uniffi_moq_ffi_fn_clone_moqjsonconsumer(self.handle, $0) }
+    }
+    // No primary constructor declared for this class.
+
+    deinit {
+        if handle == 0 {
+            // Mock objects have handle=0 don't try to free them
+            return
+        }
+
+        try! rustCall { uniffi_moq_ffi_fn_free_moqjsonconsumer(handle, $0) }
+    }
+
+    
+
+    
+    /**
+     * Cancel all current and future `next()` calls.
+     */
+open func cancel()  {try! rustCall() {
+    uniffi_moq_ffi_fn_method_moqjsonconsumer_cancel(
+            self.uniffiCloneHandle(),$0
+    )
+}
+}
+    
+    /**
+     * Get the next value as a JSON string. Returns `None` once the track ends.
+     *
+     * A consumer that has fallen behind collapses the backlog and yields only the latest value.
+     */
+open func next()async throws  -> String?  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_moq_ffi_fn_method_moqjsonconsumer_next(
+                    self.uniffiCloneHandle()
+                    
+                )
+            },
+            pollFunc: ffi_moq_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_moq_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_moq_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterOptionString.lift,
+            errorHandler: FfiConverterTypeMoqError_lift
+        )
+}
+    
+
+    
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMoqJsonConsumer: FfiConverter {
+    typealias FfiType = UInt64
+    typealias SwiftType = MoqJsonConsumer
+
+    public static func lift(_ handle: UInt64) throws -> MoqJsonConsumer {
+        return MoqJsonConsumer(unsafeFromHandle: handle)
+    }
+
+    public static func lower(_ value: MoqJsonConsumer) -> UInt64 {
+        return value.uniffiCloneHandle()
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MoqJsonConsumer {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
+    }
+
+    public static func write(_ value: MoqJsonConsumer, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqJsonConsumer_lift(_ handle: UInt64) throws -> MoqJsonConsumer {
+    return try FfiConverterTypeMoqJsonConsumer.lift(handle)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqJsonConsumer_lower(_ value: MoqJsonConsumer) -> UInt64 {
+    return FfiConverterTypeMoqJsonConsumer.lower(value)
+}
+
+
+
+
+
+
+/**
+ * Publishes a JSON value that consumers see as a single latest state.
+ */
+public protocol MoqJsonProducerProtocol: AnyObject, Sendable {
+    
+    /**
+     * Finish the track, closing any open group.
+     */
+    func finish() throws 
+    
+    /**
+     * Publish a new value, encoded as a snapshot or delta automatically. `value` is a JSON
+     * document. A no-op if unchanged from the previous update.
+     */
+    func update(value: String) throws 
+    
+}
+/**
+ * Publishes a JSON value that consumers see as a single latest state.
+ */
+open class MoqJsonProducer: MoqJsonProducerProtocol, @unchecked Sendable {
+    fileprivate let handle: UInt64
+
+    /// Used to instantiate a [FFIObject] without an actual handle, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoHandle {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    required public init(unsafeFromHandle handle: UInt64) {
+        self.handle = handle
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noHandle: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing handle the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noHandle: NoHandle) {
+        self.handle = 0
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiCloneHandle() -> UInt64 {
+        return try! rustCall { uniffi_moq_ffi_fn_clone_moqjsonproducer(self.handle, $0) }
+    }
+    // No primary constructor declared for this class.
+
+    deinit {
+        if handle == 0 {
+            // Mock objects have handle=0 don't try to free them
+            return
+        }
+
+        try! rustCall { uniffi_moq_ffi_fn_free_moqjsonproducer(handle, $0) }
+    }
+
+    
+
+    
+    /**
+     * Finish the track, closing any open group.
+     */
+open func finish()throws   {try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqjsonproducer_finish(
+            self.uniffiCloneHandle(),$0
+    )
+}
+}
+    
+    /**
+     * Publish a new value, encoded as a snapshot or delta automatically. `value` is a JSON
+     * document. A no-op if unchanged from the previous update.
+     */
+open func update(value: String)throws   {try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqjsonproducer_update(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(value),$0
+    )
+}
+}
+    
+
+    
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMoqJsonProducer: FfiConverter {
+    typealias FfiType = UInt64
+    typealias SwiftType = MoqJsonProducer
+
+    public static func lift(_ handle: UInt64) throws -> MoqJsonProducer {
+        return MoqJsonProducer(unsafeFromHandle: handle)
+    }
+
+    public static func lower(_ value: MoqJsonProducer) -> UInt64 {
+        return value.uniffiCloneHandle()
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MoqJsonProducer {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
+    }
+
+    public static func write(_ value: MoqJsonProducer, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqJsonProducer_lift(_ handle: UInt64) throws -> MoqJsonProducer {
+    return try FfiConverterTypeMoqJsonProducer.lift(handle)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqJsonProducer_lower(_ value: MoqJsonProducer) -> UInt64 {
+    return FfiConverterTypeMoqJsonProducer.lower(value)
+}
+
+
+
+
+
+
+/**
+ * Consumes an ordered log of JSON records, yielding every record in order.
+ */
+public protocol MoqJsonStreamConsumerProtocol: AnyObject, Sendable {
+    
+    /**
+     * Cancel all current and future `next()` calls.
+     */
+    func cancel() 
+    
+    /**
+     * Get the next record as a JSON string. Returns `None` once the track ends.
+     */
+    func next() async throws  -> String?
+    
+}
+/**
+ * Consumes an ordered log of JSON records, yielding every record in order.
+ */
+open class MoqJsonStreamConsumer: MoqJsonStreamConsumerProtocol, @unchecked Sendable {
+    fileprivate let handle: UInt64
+
+    /// Used to instantiate a [FFIObject] without an actual handle, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoHandle {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    required public init(unsafeFromHandle handle: UInt64) {
+        self.handle = handle
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noHandle: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing handle the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noHandle: NoHandle) {
+        self.handle = 0
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiCloneHandle() -> UInt64 {
+        return try! rustCall { uniffi_moq_ffi_fn_clone_moqjsonstreamconsumer(self.handle, $0) }
+    }
+    // No primary constructor declared for this class.
+
+    deinit {
+        if handle == 0 {
+            // Mock objects have handle=0 don't try to free them
+            return
+        }
+
+        try! rustCall { uniffi_moq_ffi_fn_free_moqjsonstreamconsumer(handle, $0) }
+    }
+
+    
+
+    
+    /**
+     * Cancel all current and future `next()` calls.
+     */
+open func cancel()  {try! rustCall() {
+    uniffi_moq_ffi_fn_method_moqjsonstreamconsumer_cancel(
+            self.uniffiCloneHandle(),$0
+    )
+}
+}
+    
+    /**
+     * Get the next record as a JSON string. Returns `None` once the track ends.
+     */
+open func next()async throws  -> String?  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_moq_ffi_fn_method_moqjsonstreamconsumer_next(
+                    self.uniffiCloneHandle()
+                    
+                )
+            },
+            pollFunc: ffi_moq_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_moq_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_moq_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterOptionString.lift,
+            errorHandler: FfiConverterTypeMoqError_lift
+        )
+}
+    
+
+    
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMoqJsonStreamConsumer: FfiConverter {
+    typealias FfiType = UInt64
+    typealias SwiftType = MoqJsonStreamConsumer
+
+    public static func lift(_ handle: UInt64) throws -> MoqJsonStreamConsumer {
+        return MoqJsonStreamConsumer(unsafeFromHandle: handle)
+    }
+
+    public static func lower(_ value: MoqJsonStreamConsumer) -> UInt64 {
+        return value.uniffiCloneHandle()
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MoqJsonStreamConsumer {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
+    }
+
+    public static func write(_ value: MoqJsonStreamConsumer, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqJsonStreamConsumer_lift(_ handle: UInt64) throws -> MoqJsonStreamConsumer {
+    return try FfiConverterTypeMoqJsonStreamConsumer.lift(handle)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqJsonStreamConsumer_lower(_ value: MoqJsonStreamConsumer) -> UInt64 {
+    return FfiConverterTypeMoqJsonStreamConsumer.lower(value)
+}
+
+
+
+
+
+
+/**
+ * Publishes an ordered log of JSON records, one record per append.
+ */
+public protocol MoqJsonStreamProducerProtocol: AnyObject, Sendable {
+    
+    /**
+     * Append one record to the log. `value` is a JSON document.
+     */
+    func append(value: String) throws 
+    
+    /**
+     * Finish the track, closing the group.
+     */
+    func finish() throws 
+    
+}
+/**
+ * Publishes an ordered log of JSON records, one record per append.
+ */
+open class MoqJsonStreamProducer: MoqJsonStreamProducerProtocol, @unchecked Sendable {
+    fileprivate let handle: UInt64
+
+    /// Used to instantiate a [FFIObject] without an actual handle, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoHandle {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    required public init(unsafeFromHandle handle: UInt64) {
+        self.handle = handle
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noHandle: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing handle the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noHandle: NoHandle) {
+        self.handle = 0
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiCloneHandle() -> UInt64 {
+        return try! rustCall { uniffi_moq_ffi_fn_clone_moqjsonstreamproducer(self.handle, $0) }
+    }
+    // No primary constructor declared for this class.
+
+    deinit {
+        if handle == 0 {
+            // Mock objects have handle=0 don't try to free them
+            return
+        }
+
+        try! rustCall { uniffi_moq_ffi_fn_free_moqjsonstreamproducer(handle, $0) }
+    }
+
+    
+
+    
+    /**
+     * Append one record to the log. `value` is a JSON document.
+     */
+open func append(value: String)throws   {try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqjsonstreamproducer_append(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(value),$0
+    )
+}
+}
+    
+    /**
+     * Finish the track, closing the group.
+     */
+open func finish()throws   {try rustCallWithError(FfiConverterTypeMoqError_lift) {
+    uniffi_moq_ffi_fn_method_moqjsonstreamproducer_finish(
+            self.uniffiCloneHandle(),$0
+    )
+}
+}
+    
+
+    
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMoqJsonStreamProducer: FfiConverter {
+    typealias FfiType = UInt64
+    typealias SwiftType = MoqJsonStreamProducer
+
+    public static func lift(_ handle: UInt64) throws -> MoqJsonStreamProducer {
+        return MoqJsonStreamProducer(unsafeFromHandle: handle)
+    }
+
+    public static func lower(_ value: MoqJsonStreamProducer) -> UInt64 {
+        return value.uniffiCloneHandle()
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MoqJsonStreamProducer {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
+    }
+
+    public static func write(_ value: MoqJsonStreamProducer, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqJsonStreamProducer_lift(_ handle: UInt64) throws -> MoqJsonStreamProducer {
+    return try FfiConverterTypeMoqJsonStreamProducer.lift(handle)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqJsonStreamProducer_lower(_ value: MoqJsonStreamProducer) -> UInt64 {
+    return FfiConverterTypeMoqJsonStreamProducer.lower(value)
 }
 
 
@@ -5363,6 +6041,143 @@ public func FfiConverterTypeMoqFrame_lower(_ value: MoqFrame) -> RustBuffer {
 }
 
 
+/**
+ * Options for a JSON snapshot track (lossy latest-value mode).
+ *
+ * The same config is passed to both the producer and the consumer, but the consumer reads only
+ * [`compression`](Self::compression); [`delta_ratio`](Self::delta_ratio) is producer-only.
+ */
+public struct MoqJsonConfig: Equatable, Hashable {
+    /**
+     * How aggressively the producer emits deltas instead of full snapshots. `0` disables deltas
+     * (one snapshot per group); a positive value allows roughly that many snapshots' worth of
+     * deltas before rolling a new group. Ignored by the consumer.
+     */
+    public var deltaRatio: UInt32
+    /**
+     * DEFLATE-compress each group. Must match on the producer and consumer.
+     */
+    public var compression: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * How aggressively the producer emits deltas instead of full snapshots. `0` disables deltas
+         * (one snapshot per group); a positive value allows roughly that many snapshots' worth of
+         * deltas before rolling a new group. Ignored by the consumer.
+         */deltaRatio: UInt32, 
+        /**
+         * DEFLATE-compress each group. Must match on the producer and consumer.
+         */compression: Bool) {
+        self.deltaRatio = deltaRatio
+        self.compression = compression
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension MoqJsonConfig: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMoqJsonConfig: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MoqJsonConfig {
+        return
+            try MoqJsonConfig(
+                deltaRatio: FfiConverterUInt32.read(from: &buf), 
+                compression: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: MoqJsonConfig, into buf: inout [UInt8]) {
+        FfiConverterUInt32.write(value.deltaRatio, into: &buf)
+        FfiConverterBool.write(value.compression, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqJsonConfig_lift(_ buf: RustBuffer) throws -> MoqJsonConfig {
+    return try FfiConverterTypeMoqJsonConfig.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqJsonConfig_lower(_ value: MoqJsonConfig) -> RustBuffer {
+    return FfiConverterTypeMoqJsonConfig.lower(value)
+}
+
+
+/**
+ * Options for a JSON stream track (lossless append-log mode).
+ *
+ * The same config is passed to both the producer and the consumer.
+ */
+public struct MoqJsonStreamConfig: Equatable, Hashable {
+    /**
+     * DEFLATE-compress the group. Must match on the producer and consumer.
+     */
+    public var compression: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * DEFLATE-compress the group. Must match on the producer and consumer.
+         */compression: Bool) {
+        self.compression = compression
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension MoqJsonStreamConfig: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMoqJsonStreamConfig: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MoqJsonStreamConfig {
+        return
+            try MoqJsonStreamConfig(
+                compression: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: MoqJsonStreamConfig, into buf: inout [UInt8]) {
+        FfiConverterBool.write(value.compression, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqJsonStreamConfig_lift(_ buf: RustBuffer) throws -> MoqJsonStreamConfig {
+    return try FfiConverterTypeMoqJsonStreamConfig.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMoqJsonStreamConfig_lower(_ value: MoqJsonStreamConfig) -> RustBuffer {
+    return FfiConverterTypeMoqJsonStreamConfig.lower(value)
+}
+
+
 public struct MoqVideo: Equatable, Hashable {
     public var codec: String
     public var description: Data?
@@ -5704,6 +6519,8 @@ public enum MoqError: Swift.Error, Equatable, Hashable, Foundation.LocalizedErro
     
     case Mux(message: String)
     
+    case JsonTrack(message: String)
+    
     case Audio(message: String)
     
     case Url(message: String)
@@ -5782,71 +6599,75 @@ public struct FfiConverterTypeMoqError: FfiConverterRustBuffer {
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 4: return .Audio(
+        case 4: return .JsonTrack(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 5: return .Url(
+        case 5: return .Audio(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 6: return .TimeOverflow(
+        case 6: return .Url(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 7: return .LogLevel(
+        case 7: return .TimeOverflow(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 8: return .Task(
+        case 8: return .LogLevel(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 9: return .Cancelled(
+        case 9: return .Task(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 10: return .Closed(
+        case 10: return .Cancelled(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 11: return .Connect(
+        case 11: return .Closed(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 12: return .Bind(
+        case 12: return .Connect(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 13: return .Reject(
+        case 13: return .Bind(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 14: return .AlreadyResponded(
+        case 14: return .Reject(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 15: return .Codec(
+        case 15: return .AlreadyResponded(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 16: return .Json(
+        case 16: return .Codec(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 17: return .InvalidErrorCode(
+        case 17: return .Json(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 18: return .Unauthorized(
+        case 18: return .InvalidErrorCode(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 19: return .Forbidden(
+        case 19: return .Unauthorized(
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 20: return .Log(
+        case 20: return .Forbidden(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 21: return .Log(
             message: try FfiConverterString.read(from: &buf)
         )
         
@@ -5867,40 +6688,42 @@ public struct FfiConverterTypeMoqError: FfiConverterRustBuffer {
             writeInt(&buf, Int32(2))
         case .Mux(_ /* message is ignored*/):
             writeInt(&buf, Int32(3))
-        case .Audio(_ /* message is ignored*/):
+        case .JsonTrack(_ /* message is ignored*/):
             writeInt(&buf, Int32(4))
-        case .Url(_ /* message is ignored*/):
+        case .Audio(_ /* message is ignored*/):
             writeInt(&buf, Int32(5))
-        case .TimeOverflow(_ /* message is ignored*/):
+        case .Url(_ /* message is ignored*/):
             writeInt(&buf, Int32(6))
-        case .LogLevel(_ /* message is ignored*/):
+        case .TimeOverflow(_ /* message is ignored*/):
             writeInt(&buf, Int32(7))
-        case .Task(_ /* message is ignored*/):
+        case .LogLevel(_ /* message is ignored*/):
             writeInt(&buf, Int32(8))
-        case .Cancelled(_ /* message is ignored*/):
+        case .Task(_ /* message is ignored*/):
             writeInt(&buf, Int32(9))
-        case .Closed(_ /* message is ignored*/):
+        case .Cancelled(_ /* message is ignored*/):
             writeInt(&buf, Int32(10))
-        case .Connect(_ /* message is ignored*/):
+        case .Closed(_ /* message is ignored*/):
             writeInt(&buf, Int32(11))
-        case .Bind(_ /* message is ignored*/):
+        case .Connect(_ /* message is ignored*/):
             writeInt(&buf, Int32(12))
-        case .Reject(_ /* message is ignored*/):
+        case .Bind(_ /* message is ignored*/):
             writeInt(&buf, Int32(13))
-        case .AlreadyResponded(_ /* message is ignored*/):
+        case .Reject(_ /* message is ignored*/):
             writeInt(&buf, Int32(14))
-        case .Codec(_ /* message is ignored*/):
+        case .AlreadyResponded(_ /* message is ignored*/):
             writeInt(&buf, Int32(15))
-        case .Json(_ /* message is ignored*/):
+        case .Codec(_ /* message is ignored*/):
             writeInt(&buf, Int32(16))
-        case .InvalidErrorCode(_ /* message is ignored*/):
+        case .Json(_ /* message is ignored*/):
             writeInt(&buf, Int32(17))
-        case .Unauthorized(_ /* message is ignored*/):
+        case .InvalidErrorCode(_ /* message is ignored*/):
             writeInt(&buf, Int32(18))
-        case .Forbidden(_ /* message is ignored*/):
+        case .Unauthorized(_ /* message is ignored*/):
             writeInt(&buf, Int32(19))
-        case .Log(_ /* message is ignored*/):
+        case .Forbidden(_ /* message is ignored*/):
             writeInt(&buf, Int32(20))
+        case .Log(_ /* message is ignored*/):
+            writeInt(&buf, Int32(21))
 
         
         }
@@ -6487,6 +7310,12 @@ private let initializationResult: InitializationResult = {
     if (uniffi_moq_ffi_checksum_method_moqbroadcastconsumer_subscribe_track() != 423) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_moq_ffi_checksum_method_moqbroadcastconsumer_subscribe_json() != 39154) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqbroadcastconsumer_subscribe_json_stream() != 43927) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_moq_ffi_checksum_method_moqcatalogconsumer_cancel() != 1059) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -6518,6 +7347,30 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqtrackconsumer_recv_group() != 26719) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqjsonconsumer_cancel() != 47765) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqjsonconsumer_next() != 57166) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqjsonproducer_finish() != 63989) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqjsonproducer_update() != 14229) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqjsonstreamconsumer_cancel() != 60362) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqjsonstreamconsumer_next() != 30879) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqjsonstreamproducer_append() != 29352) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqjsonstreamproducer_finish() != 52088) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqannounced_cancel() != 11787) {
@@ -6560,6 +7413,12 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_publish_audio() != 39786) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_publish_json() != 17834) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_publish_json_stream() != 37537) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqbroadcastproducer_consume() != 46595) {
