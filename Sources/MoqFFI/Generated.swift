@@ -2283,6 +2283,15 @@ public protocol MoqClientProtocol: AnyObject, Sendable {
     func setPublish(origin: MoqOriginProducer?) 
     
     /**
+     * Present this PEM certificate chain when the relay requires mTLS.
+     *
+     * Only certificates are read from the file; any private keys are ignored. Must be
+     * paired with `set_tls_key`, otherwise `connect` fails with an incomplete-auth error.
+     * Pass `None` to clear a previously set path.
+     */
+    func setTlsCert(path: String?) 
+    
+    /**
      * Disable TLS certificate verification (for development only).
      */
     func setTlsDisableVerify(disable: Bool) 
@@ -2296,6 +2305,15 @@ public protocol MoqClientProtocol: AnyObject, Sendable {
      * any pinned fingerprints.
      */
     func setTlsFingerprints(fingerprints: [String]) 
+    
+    /**
+     * Present this PEM private key when the relay requires mTLS.
+     *
+     * Only the private key is read from the file; any certificates are ignored. Must be
+     * paired with `set_tls_cert`, otherwise `connect` fails with an incomplete-auth error.
+     * Pass `None` to clear a previously set path.
+     */
+    func setTlsKey(path: String?) 
     
     /**
      * Trust these PEM root certificate file(s) instead of the system roots.
@@ -2446,6 +2464,21 @@ open func setPublish(origin: MoqOriginProducer?)  {try! rustCall() {
 }
     
     /**
+     * Present this PEM certificate chain when the relay requires mTLS.
+     *
+     * Only certificates are read from the file; any private keys are ignored. Must be
+     * paired with `set_tls_key`, otherwise `connect` fails with an incomplete-auth error.
+     * Pass `None` to clear a previously set path.
+     */
+open func setTlsCert(path: String?)  {try! rustCall() {
+    uniffi_moq_ffi_fn_method_moqclient_set_tls_cert(
+            self.uniffiCloneHandle(),
+        FfiConverterOptionString.lower(path),$0
+    )
+}
+}
+    
+    /**
      * Disable TLS certificate verification (for development only).
      */
 open func setTlsDisableVerify(disable: Bool)  {try! rustCall() {
@@ -2468,6 +2501,21 @@ open func setTlsFingerprints(fingerprints: [String])  {try! rustCall() {
     uniffi_moq_ffi_fn_method_moqclient_set_tls_fingerprints(
             self.uniffiCloneHandle(),
         FfiConverterSequenceString.lower(fingerprints),$0
+    )
+}
+}
+    
+    /**
+     * Present this PEM private key when the relay requires mTLS.
+     *
+     * Only the private key is read from the file; any certificates are ignored. Must be
+     * paired with `set_tls_cert`, otherwise `connect` fails with an incomplete-auth error.
+     * Pass `None` to clear a previously set path.
+     */
+open func setTlsKey(path: String?)  {try! rustCall() {
+    uniffi_moq_ffi_fn_method_moqclient_set_tls_key(
+            self.uniffiCloneHandle(),
+        FfiConverterOptionString.lower(path),$0
     )
 }
 }
@@ -7571,10 +7619,16 @@ private let initializationResult: InitializationResult = {
     if (uniffi_moq_ffi_checksum_method_moqclient_set_publish() != 56893) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_moq_ffi_checksum_method_moqclient_set_tls_cert() != 45194) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_moq_ffi_checksum_method_moqclient_set_tls_disable_verify() != 17397) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqclient_set_tls_fingerprints() != 55328) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_moq_ffi_checksum_method_moqclient_set_tls_key() != 13628) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqclient_set_tls_roots() != 54966) {
