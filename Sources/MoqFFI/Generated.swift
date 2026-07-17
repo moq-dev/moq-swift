@@ -1337,10 +1337,10 @@ public func FfiConverterTypeMoqAudioProducer_lower(_ value: MoqAudioProducer) ->
 public protocol MoqBroadcastConsumerProtocol: AnyObject, Sendable {
     
     /**
-     * Subscribe to an audio track. `catalog_audio_config` comes from
+     * Subscribe to an audio track. `catalog_audio` comes from
      * the catalog (see
      * [`MoqCatalogConsumer::next`](crate::consumer::MoqCatalogConsumer::next));
-     * the codec is inferred from it.
+     * the codec is inferred from it. Only Opus is currently supported.
      */
     func subscribeAudio(name: String, catalogAudio: MoqAudio, output: MoqAudioDecoderOutput) throws  -> MoqAudioConsumer
     
@@ -1431,10 +1431,10 @@ open class MoqBroadcastConsumer: MoqBroadcastConsumerProtocol, @unchecked Sendab
 
     
     /**
-     * Subscribe to an audio track. `catalog_audio_config` comes from
+     * Subscribe to an audio track. `catalog_audio` comes from
      * the catalog (see
      * [`MoqCatalogConsumer::next`](crate::consumer::MoqCatalogConsumer::next));
-     * the codec is inferred from it.
+     * the codec is inferred from it. Only Opus is currently supported.
      */
 open func subscribeAudio(name: String, catalogAudio: MoqAudio, output: MoqAudioDecoderOutput)throws  -> MoqAudioConsumer  {
     return try  FfiConverterTypeMoqAudioConsumer_lift(try rustCallWithError(FfiConverterTypeMoqError_lift) {
@@ -6604,6 +6604,11 @@ public enum MoqError: Swift.Error, Equatable, Hashable, Foundation.LocalizedErro
     
     case Forbidden(message: String)
     
+    /**
+     * The requested operation is not supported.
+     */
+    case Unsupported(message: String)
+    
     case Log(message: String)
     
 
@@ -6715,7 +6720,11 @@ public struct FfiConverterTypeMoqError: FfiConverterRustBuffer {
             message: try FfiConverterString.read(from: &buf)
         )
         
-        case 21: return .Log(
+        case 21: return .Unsupported(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 22: return .Log(
             message: try FfiConverterString.read(from: &buf)
         )
         
@@ -6770,8 +6779,10 @@ public struct FfiConverterTypeMoqError: FfiConverterRustBuffer {
             writeInt(&buf, Int32(19))
         case .Forbidden(_ /* message is ignored*/):
             writeInt(&buf, Int32(20))
-        case .Log(_ /* message is ignored*/):
+        case .Unsupported(_ /* message is ignored*/):
             writeInt(&buf, Int32(21))
+        case .Log(_ /* message is ignored*/):
+            writeInt(&buf, Int32(22))
 
         
         }
@@ -7346,7 +7357,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_moq_ffi_checksum_method_moqaudioproducer_write() != 49517) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_moq_ffi_checksum_method_moqbroadcastconsumer_subscribe_audio() != 16924) {
+    if (uniffi_moq_ffi_checksum_method_moqbroadcastconsumer_subscribe_audio() != 52721) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_moq_ffi_checksum_method_moqbroadcastconsumer_subscribe_catalog() != 28366) {
