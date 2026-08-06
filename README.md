@@ -11,7 +11,7 @@ Swift Package Manager releases, versioned independently of the moq-ffi crate.
 ## Install
 
 ```swift
-.package(url: "https://github.com/moq-dev/moq-swift", from: "0.4.1"),
+.package(url: "https://github.com/moq-dev/moq-swift", from: "0.4.2"),
 ```
 
 The raw `MoqFFI` bindings (and the prebuilt XCFramework) are pulled in
