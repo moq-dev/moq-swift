@@ -219,8 +219,9 @@ public final class BroadcastProducer: Sendable {
     /// encoded (H.264 or H.265) inside the FFI boundary per `input`/`output`.
     ///
     /// The track is named after the codec (`.avc3` / `.hev1`) and its catalog
-    /// rendition appears once the first keyframe has been encoded, so
-    /// subscribers discover it through the catalog rather than a name you pick.
+    /// rendition is published immediately, read out of the encoder itself, so
+    /// subscribers discover it through the catalog rather than a name you pick,
+    /// and can find it before the first frame exists.
     public func publishVideo(input: VideoEncoderInput, output: VideoEncoderOutput) throws -> VideoProducer {
         VideoProducer(try ffi.publishVideo(input: input, output: output))
     }
