@@ -44,12 +44,17 @@ public final class AudioProducer: Sendable {
         get throws { try ffi.name() }
     }
 
-    /// Suspend until the audio track has at least one active consumer.
+    /// A watch-only handle to whether the audio track has subscribers.
+    public func demand() throws -> TrackDemand {
+        TrackDemand(try ffi.demand())
+    }
+
+    /// Suspend until the audio track has at least one active consumer. Prefer `demand()`.
     public func used() async throws {
         try await ffi.used()
     }
 
-    /// Suspend until the audio track has no active consumers.
+    /// Suspend until the audio track has no active consumers. Prefer `demand()`.
     public func unused() async throws {
         try await ffi.unused()
     }
@@ -62,6 +67,11 @@ public final class AudioProducer: Sendable {
     /// Encode and write one PCM frame.
     public func write(_ frame: AudioFrame) throws {
         try ffi.write(frame: frame)
+    }
+
+    /// This encoder's bandwidth reservation, if published against a session allocator.
+    public func reservation() -> Reservation? {
+        ffi.reservation().map(Reservation.init)
     }
 
     /// Finish the track and finalize encoding.
