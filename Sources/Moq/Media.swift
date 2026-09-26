@@ -130,6 +130,17 @@ public final class MediaProducer: Sendable {
         try ffi.writeFrame(frame: Frame(payload: payload, timestampUs: timestampUs))
     }
 
+    /// Record a local encoder's frame handoff on the broadcast media clock.
+    /// Call after `writeFrame` only for local encoder output.
+    public func flush(timestampUs: UInt64) throws {
+        try ffi.flush(timestampUs: timestampUs)
+    }
+
+    /// Mark a timeline break and restart handoff measurement, preserving advertised jitter.
+    public func discontinuity() throws {
+        try ffi.discontinuity()
+    }
+
     /// Draw a group boundary here.
     ///
     /// Audio has no boundary of its own (every packet is independently decodable), so this is the
