@@ -1,8 +1,8 @@
 // swift-tools-version:5.9
 // Released manifest for the ergonomic wrapper at moq-dev/moq-swift. The
 // source-of-truth template lives at swift/Package.swift.template in
-// moq-dev/moq; swift/scripts/package.sh substitutes the moq-ffi version pin
-// (0.4.7) at release time.
+// moq-dev/moq; sh/swift/package.sh substitutes the moq-ffi version pin
+// (0.4.19) at release time.
 //
 // The wrapper versions independently of the bindings (see swift/VERSION). The
 // dependency floats to the latest compatible moq-ffi patch via .upToNextMinor,
@@ -15,7 +15,7 @@ let package = Package(
     platforms: [.iOS(.v15), .macOS("12.3")],
     products: [.library(name: "Moq", targets: ["Moq"])],
     dependencies: [
-        .package(url: "https://github.com/moq-dev/moq-swift-ffi", .upToNextMinor(from: "0.4.7")),
+        .package(url: "https://github.com/moq-dev/moq-swift-ffi", .upToNextMinor(from: "0.4.19")),
     ],
     targets: [
         .target(
